@@ -7,6 +7,8 @@ using GameGL.Observers;
 using GameGL.Models;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GameGL
 {
@@ -27,7 +29,7 @@ namespace GameGL
         private static int vel = 20;
         static bool pause = false;
         static KeyboardSubject keyboardSubject;
-        static int animationTimeout = 5;
+        static int animationTimeout = 2;
         static Stopwatch sw = new Stopwatch();
 
         static Snake snake;
@@ -43,7 +45,7 @@ namespace GameGL
         static void Main(string[] args)
         {
             var handle = GetConsoleWindow();
-            // Hide Console
+            //Hide Console
             ShowWindow(handle, SW_HIDE);
 
             Glut.glutInit();
@@ -56,9 +58,8 @@ namespace GameGL
             Glut.glutKeyboardFunc(OnKeyboard);
             Glut.glutSpecialFunc(OnArrowkey);
             Glut.glutReshapeFunc(OnReshape); // Macumba que mantem a proporção da tela
+            Glut.glutMouseFunc(OnMouseClick);
             Glut.glutMainLoop();
-
-            
         }
 
         static void start()
@@ -74,7 +75,6 @@ namespace GameGL
             keyboardSubject = new KeyboardSubject();
             keyboardSubject.Attach(snake);     
 
-            
             random = new Random();
             food = ScreenController.instance.Free[random.Next(0, ScreenController.instance.Free.Count)];
             ScreenController.instance.setPosition(food, true);
@@ -95,6 +95,10 @@ namespace GameGL
                     sw.Stop();
                 }
                 if (!pause) game();
+                else {
+                    if (isEnd) end();
+                    else menu();
+                }
             }
 
             Glut.glutSwapBuffers();
@@ -108,16 +112,16 @@ namespace GameGL
             Gl.glScaled(scale, scale, 1);
 
             scale += 0.00005f;
-            Tools.drawBG();
+            Tools.drawBG("textures/bg.jpg");
             Tools.drawImg("textures/logo.png", new Coordinate((int)(screen.Grid / 2 * screen.Ratio) -2, screen.Grid / 2 - 2), 4);
 
             Tools.drawImg("textures/name.png", new Coordinate((int)(screen.Grid / 2 * screen.Ratio) - 4, screen.Grid / 2 - 10), 8);
-            Tools.drawCicle(new Coordinate(5, 5), 1f, new Color(0.8f, 0.1f, 0.1f, 1));
+
         }
 
         static void game()
         {
-            Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
+            Tools.drawBG("textures/bg.jpg");
             snake.move();
             snake.render();
 
@@ -130,15 +134,78 @@ namespace GameGL
             }
         }
         
+
+        static int selectMenu = 1;
+        static bool moveMenu = true;
+        static void menu()
+        {
+            if (moveMenu)
+            {
+                Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
+                Gl.glPushMatrix();
+                Gl.glTranslatef(0, selectMenu * 1f / ScreenController.instance.Grid, 0);
+                Tools.drawTriangle(new Coordinate(15, 9), 1, new Color(0, 1, 0, 1));
+
+                Gl.glPopMatrix();
+
+                Gl.glBegin(Gl.GL_LINES);
+                Gl.glVertex2f(0.37f, 0.6f);
+                Gl.glVertex2f(0.55f, 0.6f);
+                Gl.glEnd();
+
+                Tools.output(0.42f, 0.65f, 1, 1, 1, Glut.GLUT_BITMAP_HELVETICA_18, "MENU");
+                Tools.output(0.42f, 0.515f, 1, 1, 1, Glut.GLUT_BITMAP_HELVETICA_12, "Reiniciar");
+                Tools.output(0.42f, 0.415f, 1, 1, 1, Glut.GLUT_BITMAP_HELVETICA_12, "Continuar");
+                moveMenu = false;
+            }
+        }
+
+        static bool endRender = false, isEnd = false;
+        public static void OnEnd() => pause = endRender = isEnd = true;
+
+        static async void end()
+        {
+            if (endRender)
+            {
+                endRender = false;
+                //Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
+                Tools.drawBG("textures/bg-end.jpg");
+
+                Tools.output(0.55f, 0.65f, 1, 1, 1, Glut.GLUT_BITMAP_TIMES_ROMAN_24, "MOOOOREEEEUUUU");
+                Tools.output(0.55f, 0.515f, 1, 1, 1, Glut.GLUT_BITMAP_HELVETICA_18, "mizeravi");
+
+                snake.reset();
+
+                await Task.Delay(3000);
+
+                pause = isEnd = false;
+            }
+        }
+
         static void OnKeyboard(byte key, int x, int y)
         {
             switch (key)
             {
+                case 13:
+                    if (pause)
+                    {
+                        switch (selectMenu)
+                        {
+                            case 1: // reinicia
+                                keyboardSubject.OnKeyboard(114);
+                                break;
+                            default: break;
+                        }
+                        pause = !pause;
+                    }
+                        
+                    break;
                 case 27: // Apertou ESC
                     Glut.glutLeaveMainLoop(); // Fechar o jogo
                     break;
                 case 32: // Apertou Espaço
-                    pause = !pause; // Pausar/despausar o jogo
+                    pause = true; // Pausar/despausar o jogo
+                    moveMenu = !isEnd && true;
                     break;
                 default: // apertou outra tecla
                     if(!pause) keyboardSubject.OnKeyboard(key);
@@ -146,7 +213,15 @@ namespace GameGL
             }
         }
 
-        static void OnArrowkey(int key, int x, int y) { if (!pause) keyboardSubject.OnKeyboard(key, true); }
+        static void OnArrowkey(int key, int x, int y) { 
+            if (!pause) keyboardSubject.OnKeyboard(key, true);
+            else if (key == Glut.GLUT_KEY_UP || key == Glut.GLUT_KEY_DOWN)
+            {
+                selectMenu *= -1;
+                moveMenu = true;
+            }
+
+        }
 
         static void OnReshape(int width, int height)
         {
@@ -164,6 +239,15 @@ namespace GameGL
             
             Gl.glViewport(viewX, viewY, viewWidth, viewHeight);
             Gl.glMatrixMode(Gl.GL_MODELVIEW);
+        }
+
+        static void OnMouseClick(int button, int state, int x, int y)
+        {
+            if (button == Glut.GLUT_LEFT_BUTTON && state == Glut.GLUT_DOWN)
+            {
+                pause = true;
+                moveMenu = true;
+            }
         }
 
     }

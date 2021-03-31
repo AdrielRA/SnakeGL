@@ -72,7 +72,8 @@ namespace GameGL.Models
                         break;
                 }
             }
-            else {                
+            else {
+                Console.WriteLine((char)key);
                 switch ((char)key)
                 {
                     case 'r':
@@ -175,7 +176,7 @@ namespace GameGL.Models
             return new Coordinate(nextX, nextY);
         }
 
-        private void reset()
+        public void reset()
         {
             ScreenController.instance.clear();
             body = new List<Coordinate>();
@@ -187,8 +188,8 @@ namespace GameGL.Models
 
         private void onCollide()
         {
-            Console.WriteLine("Colidiu");
-            reset();            
+            Program.OnEnd();
+            //reset();            
         }
 
         public bool checkFood(Coordinate food)
