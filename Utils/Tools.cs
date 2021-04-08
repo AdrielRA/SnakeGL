@@ -17,7 +17,7 @@ namespace GameGL.Utils
     {
         public static void drawRect(Coordinate origem, float size, Color color)
         {
-            Point o = new Point(origem.X * 1f / ScreenController.instance.Grid / ScreenController.instance.Ratio, origem.Y * 1f / ScreenController.instance.Grid);
+            Point o = new Point(origem.X / (float)ScreenController.instance.Grid / ScreenController.instance.Ratio, origem.Y / (float)ScreenController.instance.Grid);
             Size s = new Size(size * 1f / ScreenController.instance.Grid, size * 1f / ScreenController.instance.Grid);
 
             Gl.glColor4f(color.R, color.G, color.B, color.A);

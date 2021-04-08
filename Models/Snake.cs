@@ -12,19 +12,19 @@ namespace GameGL.Models
 {
     class Snake : IObserver
     {
-        private List<Coordinate> body, moves;
-        private Coordinate Start { get; }
-        private Coordinate Direction { get; set; }
-        public Coordinate StartDir { get; }
-        private int BodySize { get; set; }
-        private int Velocity { get; set; }
-        public int StartVel { get; }
-        private int TakedTimeout { get; set; }
-        private Color[] Colors { get; }
+        private List<Coordinate> body, moves; // cordenadas do corpo da cobrinha // fila de movimentos no teclado
+        private Coordinate Start { get; } // posição inicial no grid
+        private Coordinate Direction { get; set; } // direção atual (direita, esquerda etc)
+        public Coordinate StartDir { get; } // direção inicial (restart)
+        private int BodySize { get; set; }  // tamanho máximo da cobrinha
+        private int Velocity { get; set; } // velocidade atual
+        public int StartVel { get; } // velocidade inicial
+        private int TakedTimeout { get; set; } // timer animação ao pegar comida
+        private Color[] Colors { get; } // cores da cabeça e do corpo da cobrinha
 
-        Stopwatch sw = new Stopwatch();
+        Stopwatch sw = new Stopwatch(); // timer da animação ao pegar comida
 
-        public Snake(Coordinate start, int velocity, Coordinate direction, Color headColor, Color bodyColor)
+        public Snake(Coordinate start, int velocity, Coordinate direction, Color headColor, Color bodyColor) // contrutor
         {
             body = new List<Coordinate>();
             moves = new List<Coordinate>();
@@ -42,8 +42,7 @@ namespace GameGL.Models
             Colors[1] = bodyColor;
         }
 
-
-        public void Update(ISubject subject)
+        public void Update(ISubject subject) // implementação do padrão observer
         {
             int key = (subject as KeyboardSubject).key;
             bool special = (subject as KeyboardSubject).special;
@@ -53,19 +52,19 @@ namespace GameGL.Models
                 switch (key)
                 {
                     case 100:
-                        //Console.WriteLine("Pra esquerda");
+                        // Pra esquerda
                         if ((moves.Count == 0 && Direction.X < 1) || (moves.Count > 0 && moves[moves.Count - 1].X < 1)) moves.Add(new Coordinate(-1, 0));
                         break;
                     case 101:
-                        //Console.WriteLine("Pra cima");
+                        // Pra cima
                         if ((moves.Count == 0 && Direction.Y > -1) || (moves.Count > 0 && moves[moves.Count - 1].Y > -1)) moves.Add(new Coordinate(0, 1));                        
                         break;
                     case 102:
-                        //Console.WriteLine("Pra direita");
+                        // Pra direita
                         if ((moves.Count == 0 && Direction.X > -1) || (moves.Count > 0 && moves[moves.Count - 1].X > -1)) moves.Add(new Coordinate(1, 0));
                         break;
                     case 103:
-                        //Console.WriteLine("Pra baixo");
+                        // Pra baixo
                         if ((moves.Count == 0 && Direction.Y < 1) || (moves.Count > 0 && moves[moves.Count - 1].Y < 1)) moves.Add(new Coordinate(0, -1));
                         break;
                     default:                        
@@ -73,23 +72,21 @@ namespace GameGL.Models
                 }
             }
             else {
-                Console.WriteLine((char)key);
                 switch ((char)key)
                 {
                     case 'r':
                         reset();
                         break;                       
                     default:
-                        Console.WriteLine("Pressionou:" + (char)key);
                         break;
                 }
             }
         }
 
-        public void render()
+        public void render() // desenha cobrinha bem bonita
         {
             foreach (var pos in body.Select((p, i) => new { val = p, index = i }))
-                if(pos.index > 0) Tools.drawRect(pos.val, 1f, getColor(pos.index));
+                if(pos.index > 0) Tools.drawRect(pos.val, 1f, getColor(pos.index)); // Função de desenho
             
             if(TakedTimeout > 0) Tools.drawRect(body[0], 1f, new Color(1f, 0f, 0.7f, 1));                     
             else Tools.drawRect(body[0], 1f, Colors[0]);
@@ -98,7 +95,7 @@ namespace GameGL.Models
         private float colorRate = -0.001f;
         private Color lastColor;
 
-        private Color getColor(int index)
+        private Color getColor(int index) // cria efeito degrade no corpo da cobrinha, para ser bem bonita
         {
             float R, G, B, A;
             if(index == 1)
@@ -118,26 +115,29 @@ namespace GameGL.Models
             return lastColor;
         }
 
-        public void move ()
+        public void move () // trata os movimentos da cobrinha (regra de negocio)
         {
-            if (sw.ElapsedMilliseconds - (1000 / (float)Velocity) < 0) return;
+            if (sw.ElapsedMilliseconds - (1000 / (float)Velocity) < 0) return; // faz o controle de velocidade (independente do fps)
             else sw.Restart();
 
-            if (TakedTimeout > 0) TakedTimeout--;
-            if (moves.Count > 0)
+            if (TakedTimeout > 0) TakedTimeout--; // controle timer da animação da cobrinha ao pegar comida
+
+            if (moves.Count > 0) // desempilha ultimos movimentos
             {
                 Direction = moves[0];
                 moves.RemoveAt(0);
             }
 
-            Coordinate last = body[0];
+            Coordinate last = body[0]; // pega posição atual da cabeça da cobrinha
+            // define nova coordenada da cabeça da cobrinha
             Coordinate next = borderCheck(new Coordinate(last.X + Direction.X, last.Y + Direction.Y));
 
-            if (body.FirstOrDefault(p => p.X == next.X && p.Y == next.Y) != null) onCollide();
-            else
+            //verifica se a proxima posição já é ocupada
+            if (body.FirstOrDefault(p => p.X == next.X && p.Y == next.Y) != null) onCollide(); // detecta colisão
+            else // movimenta cobrinha de fato
             {
                 handleBody("add", next);
-                while (body.Count > BodySize) handleBody("rem");
+                while (body.Count > BodySize) handleBody("rem"); // remove posições fora do limite do tamanho máximo
             }
         }
 
@@ -168,7 +168,7 @@ namespace GameGL.Models
             }
         }
 
-        private Coordinate borderCheck(Coordinate next)
+        private Coordinate borderCheck(Coordinate next) // se for borda, inverte coordenada no eixo respectivo
         {
             int nextX = next.X < 0 ? (int)(ScreenController.instance.Grid * ScreenController.instance.Ratio) - 1 : next.X > (int)(ScreenController.instance.Grid * ScreenController.instance.Ratio) - 1 ? 0 : next.X;
             int nextY = next.Y < 0 ? ScreenController.instance.Grid - 1 : next.Y > ScreenController.instance.Grid - 1 ? 0 : next.Y;
@@ -176,7 +176,7 @@ namespace GameGL.Models
             return new Coordinate(nextX, nextY);
         }
 
-        public void reset()
+        public void reset() // reiniciar jogo
         {
             ScreenController.instance.clear();
             body = new List<Coordinate>();
@@ -186,21 +186,20 @@ namespace GameGL.Models
             BodySize = 5;
         }
 
-        private void onCollide()
-        {
-            Program.OnEnd();
-            //reset();            
-        }
-
-        public bool checkFood(Coordinate food)
+        private void onCollide() => Program.OnEnd(); // Chama animação de colisão
+        
+        public bool checkFood(Coordinate food) // verifica se pegou alguma comida
         {
             bool taked = body[0].X == food.X && body[0].Y == food.Y;
 
             if (taked) {
-                TakedTimeout = 5;
-                BodySize += 2; }
+                TakedTimeout = 10;
+                BodySize += 2;
+                Velocity += (int)(Velocity * 0.05);
+            }
             return taked;
         }
+
 
     }
 }

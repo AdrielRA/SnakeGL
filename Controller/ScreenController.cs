@@ -10,30 +10,30 @@ namespace GameGL.Controllers
 
         public Size Size { get; } // Tamanho da tela
         public float Ratio { get; } // Proporção da tela
-        public int Grid { get; } // Quantidade de divisões/quadrados tela
+        public int Grid { get; } // Quantidade de divisões/quadrados tela (fixo)
 
-        public List<Coordinate> Free { get; set; }
-        public Color clearColor { get; set; } = new Color(0, 0, 0, 1);
+        public List<Coordinate> Free { get; set; } // Posições livres no grid ex.: {0,0} {15,1} {3,21}
 
-        public ScreenController(Size size, int grid)
+        public ScreenController(Size size, int grid) // construtor
         {
-            instance = this;
+            instance = this; // instancia global
             Size = size;
-            Ratio = size.Width / size.Height;
+            Ratio = size.Width / size.Height; // calcula a proporção
             Grid = grid;
             clear();
         }
 
-        public void clear()
+        public void clear() // libera todas as posições do grid
         {
-            Free = new List<Coordinate>();
+            Free = new List<Coordinate>(); 
 
             for (int i = 0; i < Grid * 2; i++)
                 for (int j = 0; j < Grid / Ratio * 2; j++)
                     Free.Add(new Coordinate(i, j));
         }
 
-        public void setPosition(Coordinate pos, bool filled) {
+        public void setPosition(Coordinate pos, bool filled) // define se a posição esta ou não ocupada no grid
+        { 
             Coordinate coord = Free.FirstOrDefault(f => f.X == pos.X && f.Y == pos.Y);
             if (filled)
             {

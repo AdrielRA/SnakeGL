@@ -25,18 +25,19 @@ namespace GameGL
 
         /* DECLARA VARIAVEIS */
         static ScreenController screen = new ScreenController(new Size(640, 320), 20);
-        public static int fps = 60;
-        private static int vel = 20;
-        static bool pause = false;
-        static KeyboardSubject keyboardSubject;
-        static int animationTimeout = 2;
-        static Stopwatch sw = new Stopwatch();
+        public static int fps = 60; // define a taxa de quadros por segundo
+        private static int vel = 20; // define a velocidade da cobrinha
+        static bool pause = false; // define se o jogo esta ou não pausado
+        static int animationTimeout = 2; // define o tempo da animação inicial
+        static Stopwatch sw = new Stopwatch(); // controla o timer da animação
 
-        static Snake snake;
-        static public Coordinate food;
-        static Random random;
+        static KeyboardSubject keyboardSubject; // ouvinte do teclado
 
-        static void timer(int val)
+        static Snake snake; // cobrinha
+        static public Coordinate food; // comida
+        static Random random; // utilizado para gerar posição aleatória da comida
+
+        static void timer(int val) // temporizador
         {
             Glut.glutPostRedisplay();
             Glut.glutTimerFunc(1000 / fps, timer, 0);
@@ -57,23 +58,24 @@ namespace GameGL
             Glut.glutDisplayFunc(OnDisplay);
             Glut.glutKeyboardFunc(OnKeyboard);
             Glut.glutSpecialFunc(OnArrowkey);
-            Glut.glutReshapeFunc(OnReshape); // Macumba que mantem a proporção da tela
-            Glut.glutMouseFunc(OnMouseClick);
+            Glut.glutReshapeFunc(OnReshape); // Trata a responsividade
+            Glut.glutMouseFunc(OnMouseClick); // Trata o clique do mouse
             Glut.glutMainLoop();
         }
 
         static void start()
         {
+            // Definições da MATRIZ (0 a 1)
             Gl.glMatrixMode(Gl.GL_MODELVIEW);
             Gl.glLoadIdentity();
-            Glu.gluOrtho2D(0, 1, 0, 1);
-            screen.clearColor = new Color(0, 0, 0, 1);
+            Glu.gluOrtho2D(0, 1, 0, 1);            
             Gl.glClearColor(0, 0, 0, 1);
 
+            // Intancia novo player
             snake = new Snake(new Coordinate((int)(screen.Grid / 2 * screen.Ratio), screen.Grid / 2), vel, new Coordinate(1, 0), new Color(0, 0.8f, 0.8f, 1), new Color(1, 1, 1, 1));
             
-            keyboardSubject = new KeyboardSubject();
-            keyboardSubject.Attach(snake);     
+            keyboardSubject = new KeyboardSubject(); // instancia observador do teclado
+            keyboardSubject.Attach(snake);  // sinaliza que a cobrinha vai ouvir o teclado
 
             random = new Random();
             food = ScreenController.instance.Free[random.Next(0, ScreenController.instance.Free.Count)];
@@ -87,17 +89,17 @@ namespace GameGL
 
         static void OnDisplay()
         {
-            if (sw.ElapsedMilliseconds - animationTimeout * 1000 < 0) animation();            
+            if (sw.ElapsedMilliseconds - animationTimeout * 1000 < 0) animation(); // se for animação é animação           
             else
             {
-                if (sw.IsRunning) {
+                if (sw.IsRunning) { // ao terminar animação para animação
                     Gl.glPopMatrix();
                     sw.Stop();
                 }
-                if (!pause) game();
+                if (!pause) game(); // se não pausado, joga
                 else {
-                    if (isEnd) end();
-                    else menu();
+                    if (isEnd) end(); // se morreu, acabou
+                    else menu(); // se não, você esta no menu
                 }
             }
 
@@ -105,8 +107,7 @@ namespace GameGL
         }
 
         static float scale = 1;
-
-        static void animation()
+        static void animation()  // momento animado!
         {
             Gl.glTranslatef(-(scale -1) / 2, 0, 0);
             Gl.glScaled(scale, scale, 1);
@@ -119,22 +120,22 @@ namespace GameGL
 
         }
 
-        static void game()
+        static void game() // jogo bacana
         {
-            Tools.drawBG("textures/bg.jpg");
+            Tools.drawBG("textures/bg.jpg"); // mostra textura no plano de fundo
             snake.move();
             snake.render();
 
-            Tools.drawRect(food, 1f, new Color(0.8f,0.1f,0.1f,1));
+            Tools.drawRect(food, 1f, new Color(0.8f,0.1f,0.1f,1)); // desenha comida
 
-            if (snake.checkFood(food))
+            if (snake.checkFood(food)) // faz verificação da comida
             {
                 food = ScreenController.instance.Free[random.Next(0, ScreenController.instance.Free.Count)];
                 ScreenController.instance.setPosition(food, true);
             }
         }
-        
 
+        /* MENU */
         static int selectMenu = 1;
         static bool moveMenu = true;
         static void menu()
@@ -163,15 +164,16 @@ namespace GameGL
         static bool endRender = false, isEnd = false;
         public static void OnEnd() => pause = endRender = isEnd = true;
 
-        static async void end()
+        /* MORREU */
+        static async void end()  // tela de fim
         {
             if (endRender)
             {
                 endRender = false;
-                //Gl.glClear(Gl.GL_COLOR_BUFFER_BIT);
                 Tools.drawBG("textures/bg-end.jpg");
 
-                Tools.output(0.55f, 0.65f, 1, 1, 1, Glut.GLUT_BITMAP_TIMES_ROMAN_24, "MOOOOREEEEUUUU");
+                // Escreve na tela
+                Tools.output(0.55f, 0.65f, 1, 1, 1, Glut.GLUT_BITMAP_TIMES_ROMAN_24, "MOOOOREEEEUUUU"); 
                 Tools.output(0.55f, 0.515f, 1, 1, 1, Glut.GLUT_BITMAP_HELVETICA_18, "mizeravi");
 
                 snake.reset();
